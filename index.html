@@ -243,23 +243,67 @@
 
   .success {
     display: none;
-    text-align: center;
-    padding: 3.5rem 2rem;
+    padding: 2rem;
   }
 
-  .success-icon { font-size: 56px; margin-bottom: 1rem; }
+  .success-top { text-align: center; margin-bottom: 1.5rem; }
+  .success-icon { font-size: 52px; display: block; margin-bottom: 10px; }
 
   .success h2 {
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 600;
     color: var(--green);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
 
-  .success p {
-    font-size: 14px;
+  .success .sub {
+    font-size: 13px;
     color: var(--muted);
-    line-height: 1.8;
+    line-height: 1.7;
+  }
+
+  .invoice {
+    background: #f9fbf7;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+
+  .invoice-header {
+    background: var(--green);
+    color: var(--cream);
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .invoice-header span { font-size: 11px; opacity: 0.8; font-weight: 400; }
+
+  .invoice-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .invoice-row:last-child { border-bottom: none; }
+  .invoice-row .lbl { color: var(--muted); }
+  .invoice-row .val { font-weight: 500; color: var(--text); text-align: left; }
+
+  .invoice-total {
+    background: var(--green);
+    color: var(--cream);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 600;
   }
 
   .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
@@ -375,16 +419,50 @@
   </div>
 
   <div class="success" id="successState">
-    <div class="success-icon">✅</div>
-    <h2>تم استلام طلبك!</h2>
-    <p>شكراً لاختياركم الراهي للمواشي.<br/>سنتواصل معكم قريباً لتأكيد التفاصيل.<br/>نتمنى لكم أضحية مقبولة مبرورة.</p>
+    <div class="success-top">
+      <span class="success-icon">✅</span>
+      <h2>تم استلام طلبك!</h2>
+      <p class="sub">شكراً لاختياركم الراهي للمواشي.<br/>سنتواصل معكم قريباً لتأكيد التفاصيل.<br/>نتمنى لكم أضحية مقبولة مبرورة.</p>
+    </div>
+    <div class="invoice">
+      <div class="invoice-header">
+        <span>🧾 ملخص الطلب</span>
+        <span id="inv-time"></span>
+      </div>
+      <div class="invoice-row"><span class="lbl">الاسم</span><span class="val" id="inv-name"></span></div>
+      <div class="invoice-row"><span class="lbl">الجوال</span><span class="val" id="inv-phone"></span></div>
+      <div class="invoice-row"><span class="lbl">المدينة والحي</span><span class="val" id="inv-location"></span></div>
+      <div class="invoice-row"><span class="lbl">نوع الأضحية</span><span class="val" id="inv-type"></span></div>
+      <div class="invoice-row"><span class="lbl">العدد</span><span class="val" id="inv-qty"></span></div>
+      <div class="invoice-row"><span class="lbl">الذبح</span><span class="val" id="inv-slaughter"></span></div>
+      <div class="invoice-row"><span class="lbl">يوم التوصيل</span><span class="val" id="inv-day"></span></div>
+      <div class="invoice-row"><span class="lbl">الدفع</span><span class="val">كاش بعد الاستلام</span></div>
+      <div class="invoice-total"><span>المبلغ الإجمالي</span><span id="inv-amount"></span></div>
+    </div>
   </div>
 </div>
 
 <script>
-  // ─── REPLACE THIS with your Google Apps Script Web App URL ───────────────────
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysnnCMxMi0jG6zObbgLGRnaccqxosVLIMekYPZBrD-du1RBiHCdwBOijWaLy1wa4RV2g/exec";
-  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Convert Arabic/Persian numerals to English
+  function toEnglishNums(str) {
+    return String(str)
+      .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632)
+      .replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776);
+  }
+
+  // Auto-convert on input for number/tel fields
+  document.addEventListener('DOMContentLoaded', () => {
+    ['phone','qty','amount'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const converted = toEnglishNums(el.value);
+        if (converted !== el.value) el.value = converted;
+      });
+    });
+  });
 
   function selectRadio(el, group) {
     document.querySelectorAll(`[onclick*="'${group}'"]`).forEach(o => o.classList.remove('selected'));
@@ -410,7 +488,7 @@
   function validate() {
     let valid = true;
     const name = document.getElementById('name').value.trim();
-    const phone = document.getElementById('phone').value.trim();
+    const phone = toEnglishNums(document.getElementById('phone').value.trim());
     const location = document.getElementById('location').value.trim();
     const type = document.getElementById('type').value;
     const slaughter = document.querySelector('input[name="slaughter"]:checked');
@@ -426,6 +504,18 @@
     return valid;
   }
 
+  function populateInvoice(data) {
+    document.getElementById('inv-name').textContent = data.name;
+    document.getElementById('inv-phone').textContent = data.phone;
+    document.getElementById('inv-location').textContent = data.location;
+    document.getElementById('inv-type').textContent = data.type;
+    document.getElementById('inv-qty').textContent = data.qty;
+    document.getElementById('inv-slaughter').textContent = data.slaughter;
+    document.getElementById('inv-day').textContent = data.day;
+    document.getElementById('inv-amount').textContent = data.amount !== '—' ? data.amount + ' ريال' : 'سيتم التأكيد';
+    document.getElementById('inv-time').textContent = data.timestamp;
+  }
+
   async function submitForm() {
     if (!validate()) return;
 
@@ -439,13 +529,13 @@
     const data = {
       timestamp: new Date().toLocaleString('ar-SA'),
       name: document.getElementById('name').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
+      phone: toEnglishNums(document.getElementById('phone').value.trim()),
       location: document.getElementById('location').value.trim(),
       type: document.getElementById('type').value,
-      qty: document.getElementById('qty').value,
+      qty: toEnglishNums(document.getElementById('qty').value),
       slaughter: document.querySelector('input[name="slaughter"]:checked').value,
       day: document.querySelector('.day-btn.selected').textContent.trim(),
-      amount: document.getElementById('amount').value || '—',
+      amount: toEnglishNums(document.getElementById('amount').value) || '—',
       notes: document.getElementById('notes').value.trim() || '—',
     };
 
@@ -458,6 +548,7 @@
           body: JSON.stringify(data),
         });
       }
+      populateInvoice(data);
       document.getElementById('formBody').style.display = 'none';
       document.getElementById('successState').style.display = 'block';
     } catch (e) {
